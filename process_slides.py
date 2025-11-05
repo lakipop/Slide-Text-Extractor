@@ -1,30 +1,37 @@
 # ----------------------------------------------------------------------
 # 1. ---- CONFIGURATION (!!! YOU MUST CHANGE THESE VALUES !!!) ----
 # ----------------------------------------------------------------------
-# Paste your Key and Endpoint from the Azure Portal
-AZURE_ENDPOINT = "YOUR_ENDPOINT_URL_HERE"
-AZURE_KEY = "YOUR_KEY_1_HERE"
+import os
+import glob
+from tqdm import tqdm
+from dotenv import load_dotenv
+from azure.ai.vision.imageanalysis import ImageAnalysisClient, VisualFeatures
+from azure.core.credentials import AzureKeyCredential
 
+# Load environment variables from a .env file
+load_dotenv()
+
+# --- Secure Configuration (loaded from .env file) ---
+# Your Azure credentials are now loaded securely from the .env file
+AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT")
+AZURE_KEY = os.getenv("AZURE_KEY")
+
+# --- Local Configuration (edit these values directly) ---
 # Point this to the folder containing your 1500+ screenshots
 # IMPORTANT: Use 'r' before the string to handle backslashes correctly
-IMAGE_FOLDER_PATH = r"C:\Users\YourName\Desktop\MyScreenshots"
+IMAGE_FOLDER_PATH = r"C:\Users\lakin\Desktop\MyScreenshots"
 
 # The name of the final output file
 OUTPUT_FILE = "course_notes.md"
 
 # The vertical pixel line to separate slide text from the caption below it.
 # Any text starting *below* this Y-coordinate will be treated as a caption.
-# You WILL need to adjust this by examining the screenshots.
+# You WILL need to adjust this by examining the screenshots. See GUIDE.md for details.
 CAPTION_SEPARATOR_Y_PIXEL = 850
 
 # ----------------------------------------------------------------------
 # 2. ---- SCRIPT INITIALIZATION ----
 # ----------------------------------------------------------------------
-import os
-import glob
-from tqdm import tqdm
-from azure.ai.vision.imageanalysis import ImageAnalysisClient, VisualFeatures
-from azure.core.credentials import AzureKeyCredential
 
 # This dictionary will store our final, grouped data
 # Key: The main text of a slide

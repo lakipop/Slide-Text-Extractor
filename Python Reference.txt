@@ -1,0 +1,59 @@
+# Python Commands Reference - Slide Text Extractor Project
+
+## Environment Setup Commands
+
+1. python -m venv venv
+   - Creates a new virtual environment folder named 'venv'
+   - Isolates project dependencies from your system Python
+
+2. .\venv\Scripts\activate (Windows)
+   - Activates the virtual environment
+   - After this, all pip installs go into this isolated environment
+
+3. source venv/bin/activate (Mac/Linux)
+   - Same as above, but for Unix-based systems
+
+## Package Management Commands
+
+4. pip install -r requirements.txt
+   - Installs all packages listed in requirements.txt
+   - In our case: azure-ai-vision-imageanalysis, tqdm, python-dotenv
+
+5. pip install python-dotenv
+   - Installs a single package (python-dotenv)
+   - This package loads environment variables from .env files
+
+6. pip list
+   - Shows all installed packages in the current environment
+
+7. pip freeze > requirements.txt
+   - Exports all installed packages with versions to requirements.txt
+
+## Running the Script
+
+8. python process_slides.py
+   - Runs the main Python script
+   - Processes all images and generates course_notes.md
+
+## Git Commands (Bonus)
+
+9. git init
+   - Initializes a new Git repository in the current folder
+
+10. git add .
+    - Stages all files for commit
+
+11. git commit -m "message"
+    - Commits staged changes with a message
+
+12. git push
+    - Uploads your commits to GitHub
+
+## Key Python Imports in Our Script
+
+- import os: File and directory operations
+- import glob: Find files matching a pattern
+- from tqdm import tqdm: Progress bar
+- from dotenv import load_dotenv: Load .env variables
+- from azure.ai.vision.imageanalysis import ImageAnalysisClient: Azure OCR client
+- from azure.core.credentials import AzureKeyCredential: Azure authentication

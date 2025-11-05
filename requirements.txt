@@ -1,2 +1,3 @@
 azure-ai-vision-imageanalysis
 tqdm
+python-dotenv
