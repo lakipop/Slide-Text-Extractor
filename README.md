@@ -12,9 +12,18 @@ For detailed, step-by-step instructions on setting up and running this project, 
 
 The guide covers:
 - Creating your Azure AI resource
-- Securely configuring your credentials
+- Configuring all settings in the `.env` file (credentials, paths, and options)
 - Installing dependencies
 - Finding the correct caption separator value
 - Running the script
+
+## ⚙️ Configuration
+
+All configuration is managed through the `.env` file. Simply rename `.env.example` to `.env` and update:
+- **AZURE_ENDPOINT**: Your Azure endpoint URL
+- **AZURE_KEY**: Your Azure key
+- **IMAGE_FOLDER_PATH**: Path to your screenshots folder
+- **OUTPUT_FILE**: Name of the output file
+- **CAPTION_SEPARATOR_Y_PIXEL**: Y-pixel value to separate slides from captions
 
 The script will process all images and generate the specified output file in the project directory.

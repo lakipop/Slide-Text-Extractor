@@ -31,17 +31,26 @@ To use this script, you need an Azure account and an "Azure AI Services" resourc
 
 ### Part 2: Set Up Your Local Project
 
-Now, let's set up the project on your computer and securely add your Azure credentials.
+Now, let's set up the project on your computer and configure all settings in one place.
 
 1.  **Clone the Repository:** If you haven't already, clone this project to your machine.
 2.  **Create Your `.env` File:**
     *   In the project folder, find the file named `.env.example`.
     *   **Rename** this file to just `.env`.
-3.  **Add Your Secrets:**
+3.  **Configure All Settings in `.env`:**
     *   Open the new `.env` file in a text editor.
-    *   Copy your **`Endpoint`** URL from the Azure portal and paste it as the value for `AZURE_ENDPOINT`.
-    *   Copy your **`KEY 1`** from the Azure portal and paste it as the value for `AZURE_KEY`.
-    *   Save and close the file. The `.gitignore` file is already configured to prevent this file from ever being uploaded.
+    *   **Azure Credentials:**
+        *   Copy your **`Endpoint`** URL from the Azure portal and paste it as the value for `AZURE_ENDPOINT`.
+        *   Copy your **`KEY 1`** from the Azure portal and paste it as the value for `AZURE_KEY`.
+    *   **Image Folder Path:**
+        *   Update `IMAGE_FOLDER_PATH` with the full path to your screenshots folder.
+        *   **Important:** Use forward slashes (`/`) or double backslashes (`\\`) in Windows paths.
+        *   Example: `C:/Users/MyUser/Desktop/MyScreenshots`
+    *   **Output File Name:**
+        *   Change `OUTPUT_FILE` if you want a different name (default is `course_notes.md`).
+    *   **Caption Separator:**
+        *   Update `CAPTION_SEPARATOR_Y_PIXEL` with the correct Y-pixel value (see Part 4 below).
+    *   Save and close the file. The `.gitignore` file prevents this file from being uploaded to Git.
 
 ---
 
@@ -63,32 +72,25 @@ Now, let's set up the project on your computer and securely add your Azure crede
 
 ---
 
-### Part 4: Configure the Script
+### Part 4: Find the Caption Separator Value
 
-Open `process_slides.py` and configure the final two settings.
+The `CAPTION_SEPARATOR_Y_PIXEL` is the most important setting. It defines a horizontal line on your images. Any text *above* this line is considered slide content, and any text *below* it is considered a caption.
 
-1.  **Set the `IMAGE_FOLDER_PATH`:**
-    *   Locate the `IMAGE_FOLDER_PATH` variable.
-    *   Change the value to the **full, absolute path** of the folder containing your 1,500+ screenshots.
-    *   **Example:** `r"C:\Users\MyUser\Documents\University\Lecture_Screenshots"`
+**How to Find the Right Value:**
 
-2.  **Set the `CAPTION_SEPARATOR_Y_PIXEL` (Crucial Step!):**
-    This variable is the most important setting to get right. It is an integer that defines a horizontal line on your images. Any text *above* this line is considered slide content, and any text *below* it is considered a caption.
+1.  Navigate to your screenshots folder and open a typical screenshot in an image editor like **MS Paint**, **GIMP**, or **Photoshop**.
+2.  Move your mouse cursor to the space **between** the main slide content and the caption text.
+3.  Look at the status bar (usually at the bottom) of the image editor. It will show you the X and Y coordinates of your cursor.
+4.  Note the **Y-coordinate**. This is your `CAPTION_SEPARATOR_Y_PIXEL` value.
+5.  Open your `.env` file and update the `CAPTION_SEPARATOR_Y_PIXEL` value with this number.
 
-    **How to Find the Right Value:**
-    a.  Navigate to your screenshots folder and open a typical-looking screenshot in an image editor like **MS Paint**, **GIMP**, or **Photoshop**.
-    b.  Move your mouse cursor to the space **between** the main slide content and the caption text.
-    c.  Look at the status bar (usually at the bottom) of the image editor. It will show you the X and Y coordinates of your cursor.
-    d.  Note the **Y-coordinate**. This is your `CAPTION_SEPARATOR_Y_PIXEL` value. Pick a value that safely separates the two text regions across all your images.
-    e.  Update the variable in the script with this new integer value.
-
-    *For example, if your images are 1920x1080 and the captions always start below the 900-pixel mark, a value of `880` would be a safe choice.*
+*For example, if your images are 1920x1080 and the captions always start below the 900-pixel mark, a value of `880` would be a safe choice.*
 
 ---
 
 ### Part 5: Run the Script
 
-You are now ready to process your images!
+You are now ready to process your images! All configuration is done in the `.env` file.
 
 1.  Make sure your virtual environment is still active (`(venv)` is visible in your terminal).
 2.  Run the script from the project's root directory:
