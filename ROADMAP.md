@@ -28,9 +28,7 @@ This document outlines the planned features and improvements for the Slide Text 
 
 **Impact:** Output notes now maintain the original slide structure, making them significantly more readable and useful.
 
-**Difficulty:** Medium (6/10)
 
-**Status:** ✅ Completed
 
 ---
 
@@ -75,10 +73,6 @@ This document outlines the planned features and improvements for the Slide Text 
 - Significant time savings on re-runs
 - Chronological ordering ensures accurate note sequence
 - Detailed metrics for tracking performance
-
-**Difficulty:** Easy (4/10)
-
-**Status:** ✅ Completed
 
 ---
 
@@ -160,49 +154,64 @@ This document outlines the planned features and improvements for the Slide Text 
 
 ---
 
-## Phase 7: PDF Document Support 📄
+## Phase 7: PDF Document Support 📄 (Separate Project Recommended)
 
-**Goal:** Extend OCR capabilities to extract text from PDF lecture slides and documents.
+**Goal:** Extract and format text from PDF lecture notes and textbooks in a book-style continuous format.
 
-**Approach Options:**
+**Key Differences from Image Slides:**
+- **No caption separation** - PDFs have continuous text flow
+- **Book-style output** - Chapters and sections, not individual slides
+- **No de-duplication** - Each page contains unique content
+- **Different structure** - Paragraphs, headings, tables vs. slide + caption
 
-**Option A: Same Project (Recommended)**
-- Add PDF processing as a feature flag in the existing codebase
-- Use Azure AI Document Intelligence (formerly Form Recognizer)
-- Automatic format detection (image vs PDF)
-- Unified output format (same Markdown structure)
-- Shared cache and logging infrastructure
+**Recommendation: CREATE SEPARATE PROJECT** ⭐
 
-**Option B: Separate Project**
-- Create `PDF-Text-Extractor` repository
-- Independent deployment and maintenance
-- Specialized for document processing
-- API can be used alongside image extractor
+**Why Separate Repository:**
+1. **Different Use Case:**
+   - Slide Extractor: Video lecture screenshots with captions
+   - PDF Extractor: Textbook/document continuous reading
 
-**Recommendation: Option A (Same Project)** 
-- **Pros:**
-  - Single tool for all lecture materials
-  - Shared code (logging, formatting, caching)
-  - Unified user experience
-  - Less maintenance overhead
-  - Combined statistics and reporting
-  
-- **Cons:**
-  - Slightly more complex configuration
-  - Additional dependencies (`PyPDF2` or `azure-ai-documentintelligence`)
+2. **Different Output Format:**
+   - Slides: Individual slides with merged captions
+   - PDFs: Book chapters with continuous text flow
 
-**Implementation Details:**
-- Add `INPUT_TYPE` config (auto-detect, images-only, pdf-only, mixed)
-- Use Azure Document Intelligence's Layout API for PDFs
-- Convert multi-page PDFs to individual slides
-- Maintain same de-duplication and caption merging logic
-- Same output format (Markdown with formatting preservation)
+3. **Different Processing Logic:**
+   - Slides: De-duplicate slides, merge captions, pixel-based separation
+   - PDFs: Page ordering, chapter detection, paragraph flow
+
+4. **Different Azure Service:**
+   - Slides: Azure AI Vision (Computer Vision Read API)
+   - PDFs: Azure AI Document Intelligence (Layout model)
+     - Better for structured documents
+     - Understands headings, paragraphs, tables
+     - Handles multi-column layouts
+     - Extracts reading order
+
+5. **Cleaner Codebase:**
+   - Each tool focused on one purpose
+   - Easier to maintain and extend
+   - Independent deployment schedules
+
+**New Project: `PDF-Book-Extractor`**
+
+**Features:**
+- Extract text from PDF lecture notes/textbooks
+- Detect and preserve chapter/section structure
+- Maintain proper reading order and flow
+- Handle tables and lists
+- Book-style Markdown output
+- Optional: Extract embedded images and diagrams
+
+**Technology Options:**
+- **Option A:** Azure AI Document Intelligence (best quality, paid)
+- **Option B:** PyPDF2 + pdfplumber (free, offline, good quality)
+- **Option C:** PyMuPDF (fast, comprehensive)
 
 **Difficulty:** Medium (7/10)
 
-**Status:** Planned
+**Status:** Future Separate Project
 
-**Dependencies:** Requires Phase 2 (logging) foundation
+**Dependencies:** Can reuse logging/caching concepts from Phase 2
 
 ---
 
@@ -210,18 +219,18 @@ This document outlines the planned features and improvements for the Slide Text 
 
 1. ✅ **Phase 2** (Logging) → COMPLETED
 2. ✅ **Phase 1** (Formatting) → COMPLETED
-3. **Phase 7** (PDF Support) → Leverage existing infrastructure
-4. **Phase 3** (Streamlit UI) → UI for both image and PDF inputs
-5. **Phase 5** (FastAPI Backend) → API supports both formats
-6. **Phase 6** (Vue.js Frontend) → Modern UI for all features
-7. **Phase 4** (Image Extraction) → Advanced feature, requires most research
+3. **Phase 3** (Streamlit UI) → UI for image slide processing
+4. **Phase 5** (FastAPI Backend) → API for slide extraction
+5. **Phase 6** (Vue.js Frontend) → Modern UI for slide tool
+6. **Phase 4** (Image Extraction) → Advanced feature for slides
+7. **Phase 7** (PDF Support) → Separate project for book-style documents
 
 ---
 
 ## Notes
 
-- Phases 1-2 are complete with robust foundation
-- Phases 1-3, 7 can be completed within the current Python project
-- PDF support (Phase 7) should be added before UI phases for complete functionality
-- Phases 5-6 require creating new, separate repositories
-- The API-based architecture (Phases 5-6) follows modern microservices best practices
+- ✅ Phases 1-2 are complete with robust foundation
+- Phases 1-4 focus on perfecting the slide extraction tool
+- **Phase 7 (PDF) should be a separate repository** due to different use case and output format
+- Phases 5-6 can create API/UI for the slide extractor
+- PDF Book Extractor can follow similar architecture patterns but remain independent
