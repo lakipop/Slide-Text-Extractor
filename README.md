@@ -10,6 +10,15 @@ For detailed, step-by-step instructions on setting up and running this project, 
 
 ➡️ **[Complete User Guide (GUIDE.md)](GUIDE.md)**
 
+## 🚀 Quick Start (Windows)
+
+1. **First-time setup:**
+   - Double-click `SETUP.bat` to install everything automatically
+   - Configure your `.env` file (rename `.env.example` to `.env` and add your settings)
+
+2. **Run the script:**
+   - Double-click `RUN.bat` to process your images
+
 The guide covers:
 - Creating your Azure AI resource
 - Configuring all settings in the `.env` file (credentials, paths, and options)

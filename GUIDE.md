@@ -56,6 +56,16 @@ Now, let's set up the project on your computer and configure all settings in one
 
 ### Part 3: Install Dependencies
 
+**Option A: One-Click Setup (Windows - Recommended)**
+
+1.  Double-click the `SETUP.bat` file in the project folder.
+2.  The script will automatically:
+    *   Create the virtual environment
+    *   Install all required packages
+    *   Check your configuration
+
+**Option B: Manual Setup (All Platforms)**
+
 1.  **Open a Terminal:** Open a terminal or command prompt inside the project's root directory.
 2.  **Create a Virtual Environment:** This creates an isolated environment for the project's Python packages.
     ```bash
@@ -91,6 +101,16 @@ The `CAPTION_SEPARATOR_Y_PIXEL` is the most important setting. It defines a hori
 ### Part 5: Run the Script
 
 You are now ready to process your images! All configuration is done in the `.env` file.
+
+**Option A: One-Click Run (Windows - Recommended)**
+
+Simply double-click the `RUN.bat` file in the project folder. The script will:
+*   Activate the virtual environment automatically
+*   Check your configuration
+*   Run the script and show progress
+*   Display a completion message when done
+
+**Option B: Manual Run (All Platforms)**
 
 1.  Make sure your virtual environment is still active (`(venv)` is visible in your terminal).
 2.  Run the script from the project's root directory:

@@ -1,12 +1,16 @@
-# ----------------------------------------------------------------------
-# 1. ---- CONFIGURATION (!!! YOU MUST CHANGE THESE VALUES !!!) ----
-# ----------------------------------------------------------------------
 import os
 import glob
 from tqdm import tqdm
 from dotenv import load_dotenv
-from azure.ai.vision.imageanalysis import ImageAnalysisClient, VisualFeatures
+from azure.ai.vision.imageanalysis import ImageAnalysisClient
+from azure.ai.vision.imageanalysis.models import VisualFeatures
 from azure.core.credentials import AzureKeyCredential
+
+
+# ----------------------------------------------------------------------
+# 1. ---- CONFIGURATION (!!! YOU MUST CHANGE THESE VALUES !!!) CHange in .ENV file ----
+# ----------------------------------------------------------------------
+
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -76,9 +80,15 @@ for image_path in tqdm(image_files, desc="Processing Images"):
         slide_text_lines = []
         caption_text_lines = []
 
-        if result.read is not None:
+        if result.read is not None and result.read.blocks:
+            # Collect all lines from all blocks
+            all_lines = []
+            for block in result.read.blocks:
+                if block.lines:
+                    all_lines.extend(block.lines)
+            
             # Sort lines by their vertical position to ensure correct order
-            sorted_lines = sorted(result.read.lines, key=lambda line: line.bounding_polygon[0].y)
+            sorted_lines = sorted(all_lines, key=lambda line: line.bounding_polygon[0].y)
             
             for line in sorted_lines:
                 # If the line's starting Y-position is above the separator, it's slide content
