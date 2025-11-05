@@ -7,7 +7,10 @@ __pycache__/
 
 # Environment
 .env
-.env.example
+
+# Processing files
+processing.log
+.processed_images.json
 
 # IDE / Editor
 .vscode/

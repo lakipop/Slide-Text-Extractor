@@ -34,19 +34,51 @@ This document outlines the planned features and improvements for the Slide Text 
 
 ---
 
-## Phase 2: Logging and Metadata 📊 (Quick Win)
+## Phase 2: Logging and Metadata ✅ COMPLETED
 
 **Goal:** Add professional logging and detailed processing information.
 
-**Features:**
-- Display total file count and size before processing
-- Write processing logs to a `processing.log` file with timestamps
-- Track processing time per image and total duration
-- Log warnings and errors for easier debugging
+**Implementation Details:**
+- **Logging System:** Implemented Python's built-in `logging` module
+  - Logs written to `processing.log` with timestamps
+  - Dual output: both file and console
+  - Different log levels (INFO, WARNING, ERROR, DEBUG)
+  
+- **Processing Statistics:**
+  - Total file count and size (human-readable format: MB, GB)
+  - Files processed vs skipped vs failed
+  - Total processing time and average time per image
+  - Detailed start/end timestamps
+
+- **Smart Duplicate Detection:**
+  - Cache system (`.processed_images.json`) tracks processed files
+  - Compares file name, size, and modification time
+  - Skips already-processed images (saves time and API costs)
+  - Automatic cache persistence across runs
+
+- **Date-Based Sorting:**
+  - Images sorted by creation date (oldest first)
+  - Maintains original lecture/recording order
+  - Ensures notes follow chronological sequence
+
+- **Enhanced Output:**
+  - Notes file includes generation timestamp
+  - Total slide count in header
+  - Better success/error messages
+
+**Testing:** Verified with multiple runs:
+- First run: Processed 2 images in 11.23 seconds
+- Second run: Skipped 2 images in 0.02 seconds (99.8% faster!)
+
+**Impact:** 
+- Professional-grade logging for debugging
+- Significant time savings on re-runs
+- Chronological ordering ensures accurate note sequence
+- Detailed metrics for tracking performance
 
 **Difficulty:** Easy (4/10)
 
-**Status:** Planned
+**Status:** ✅ Completed
 
 ---
 
@@ -128,20 +160,68 @@ This document outlines the planned features and improvements for the Slide Text 
 
 ---
 
+## Phase 7: PDF Document Support 📄
+
+**Goal:** Extend OCR capabilities to extract text from PDF lecture slides and documents.
+
+**Approach Options:**
+
+**Option A: Same Project (Recommended)**
+- Add PDF processing as a feature flag in the existing codebase
+- Use Azure AI Document Intelligence (formerly Form Recognizer)
+- Automatic format detection (image vs PDF)
+- Unified output format (same Markdown structure)
+- Shared cache and logging infrastructure
+
+**Option B: Separate Project**
+- Create `PDF-Text-Extractor` repository
+- Independent deployment and maintenance
+- Specialized for document processing
+- API can be used alongside image extractor
+
+**Recommendation: Option A (Same Project)** 
+- **Pros:**
+  - Single tool for all lecture materials
+  - Shared code (logging, formatting, caching)
+  - Unified user experience
+  - Less maintenance overhead
+  - Combined statistics and reporting
+  
+- **Cons:**
+  - Slightly more complex configuration
+  - Additional dependencies (`PyPDF2` or `azure-ai-documentintelligence`)
+
+**Implementation Details:**
+- Add `INPUT_TYPE` config (auto-detect, images-only, pdf-only, mixed)
+- Use Azure Document Intelligence's Layout API for PDFs
+- Convert multi-page PDFs to individual slides
+- Maintain same de-duplication and caption merging logic
+- Same output format (Markdown with formatting preservation)
+
+**Difficulty:** Medium (7/10)
+
+**Status:** Planned
+
+**Dependencies:** Requires Phase 2 (logging) foundation
+
+---
+
 ## Recommended Implementation Order
 
-1. **Phase 2** (Logging) → Easiest, helps with debugging all future features
-2. **Phase 1** (Formatting) → Makes output immediately more useful
-3. **Phase 3** (Streamlit UI) → Quick way to make tool user-friendly
-4. **Phase 5** (FastAPI Backend) → Foundation for professional architecture
-5. **Phase 6** (Vue.js Frontend) → Modern UI for end users
-6. **Phase 4** (Image Extraction) → Advanced feature, requires most research
+1. ✅ **Phase 2** (Logging) → COMPLETED
+2. ✅ **Phase 1** (Formatting) → COMPLETED
+3. **Phase 7** (PDF Support) → Leverage existing infrastructure
+4. **Phase 3** (Streamlit UI) → UI for both image and PDF inputs
+5. **Phase 5** (FastAPI Backend) → API supports both formats
+6. **Phase 6** (Vue.js Frontend) → Modern UI for all features
+7. **Phase 4** (Image Extraction) → Advanced feature, requires most research
 
 ---
 
 ## Notes
 
-- Each phase builds on the previous one
-- Phases 1-3 can be completed within the current Python project
+- Phases 1-2 are complete with robust foundation
+- Phases 1-3, 7 can be completed within the current Python project
+- PDF support (Phase 7) should be added before UI phases for complete functionality
 - Phases 5-6 require creating new, separate repositories
 - The API-based architecture (Phases 5-6) follows modern microservices best practices

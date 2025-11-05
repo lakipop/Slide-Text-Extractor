@@ -5,6 +5,9 @@ import os
 import glob
 import re
 import time
+import json
+import logging
+from datetime import datetime
 from tqdm import tqdm
 from dotenv import load_dotenv
 from azure.ai.vision.imageanalysis import ImageAnalysisClient
@@ -25,10 +28,59 @@ CAPTION_SEPARATOR_Y_PIXEL = int(os.getenv("CAPTION_SEPARATOR_Y_PIXEL", "850"))  
 # Ensure output file is saved in the script's directory, not the working directory
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_FILE = os.path.join(SCRIPT_DIR, OUTPUT_FILE_NAME)
+PROCESSED_CACHE_FILE = os.path.join(SCRIPT_DIR, ".processed_images.json")
+LOG_FILE = os.path.join(SCRIPT_DIR, "processing.log")
+
+# --- Setup Logging ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # ----------------------------------------------------------------------
 # 2. ---- HELPER FUNCTIONS ----
 # ----------------------------------------------------------------------
+
+def load_processed_cache():
+    """Load the cache of already processed images."""
+    if os.path.exists(PROCESSED_CACHE_FILE):
+        try:
+            with open(PROCESSED_CACHE_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Could not load cache file: {e}")
+            return {}
+    return {}
+
+def save_processed_cache(cache):
+    """Save the cache of processed images."""
+    try:
+        with open(PROCESSED_CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(cache, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Could not save cache file: {e}")
+
+def get_file_info(file_path):
+    """Get file metadata (size, creation time, modification time)."""
+    stat = os.stat(file_path)
+    return {
+        'size': stat.st_size,
+        'created': stat.st_ctime,
+        'modified': stat.st_mtime
+    }
+
+def format_file_size(size_bytes):
+    """Convert bytes to human-readable format."""
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size_bytes < 1024.0:
+            return f"{size_bytes:.2f} {unit}"
+        size_bytes /= 1024.0
+    return f"{size_bytes:.2f} TB"
 
 def _format_text_with_structure(lines):
     """
@@ -104,36 +156,93 @@ grouped_slides = {}
 # This list maintains the original order of the unique slides as they appear
 slide_order = []
 
+# Dictionary to store slide data by image filename for caching
+image_to_slide_map = {}
+
 # ----------------------------------------------------------------------
 # 4. ---- INITIALIZE AZURE CLIENT ----
 # ----------------------------------------------------------------------
+logger.info("=" * 60)
+logger.info("Starting Slide Text Extractor")
+logger.info("=" * 60)
+
 # Create an authenticated Image Analysis client
 try:
     client = ImageAnalysisClient(
         endpoint=AZURE_ENDPOINT,
         credential=AzureKeyCredential(AZURE_KEY)
     )
-    print("Azure AI Vision client initialized successfully.")
+    logger.info("Azure AI Vision client initialized successfully")
 except Exception as e:
-    print(f"Error initializing Azure client: {e}")
-    print("Please check your AZURE_ENDPOINT and AZURE_KEY values.")
+    logger.error(f"Error initializing Azure client: {e}")
+    logger.error("Please check your AZURE_ENDPOINT and AZURE_KEY values")
     exit()
 
 # ----------------------------------------------------------------------
 # 5. ---- PROCESS IMAGES ----
 # ----------------------------------------------------------------------
+# Load cache of previously processed images
+processed_cache = load_processed_cache()
+logger.info(f"Loaded cache with {len(processed_cache)} previously processed images")
+
 # Find all .png and .jpg images in the specified folder
-image_files = sorted(glob.glob(os.path.join(IMAGE_FOLDER_PATH, "*.png")) + glob.glob(os.path.join(IMAGE_FOLDER_PATH, "*.jpg")))
+image_files = glob.glob(os.path.join(IMAGE_FOLDER_PATH, "*.png")) + glob.glob(os.path.join(IMAGE_FOLDER_PATH, "*.jpg"))
 
 if not image_files:
-    print(f"Error: No .png or .jpg files found in '{IMAGE_FOLDER_PATH}'.")
-    print("Please check your IMAGE_FOLDER_PATH setting.")
+    logger.error(f"No .png or .jpg files found in '{IMAGE_FOLDER_PATH}'")
+    logger.error("Please check your IMAGE_FOLDER_PATH setting")
     exit()
 
-print(f"Found {len(image_files)} images to process. Starting analysis...")
+# Sort images by creation date (oldest first) to maintain lecture order
+image_files_with_dates = [(f, os.path.getctime(f)) for f in image_files]
+image_files_with_dates.sort(key=lambda x: x[1])  # Sort by creation time
+image_files = [f[0] for f in image_files_with_dates]
+
+# Calculate total size
+total_size = sum(os.path.getsize(f) for f in image_files)
+logger.info(f"Found {len(image_files)} images ({format_file_size(total_size)} total)")
+logger.info(f"Images sorted by creation date (maintaining lecture order)")
+
+# Track processing statistics
+stats = {
+    'total': len(image_files),
+    'processed': 0,
+    'skipped': 0,
+    'failed': 0,
+    'start_time': time.time()
+}
 
 # Loop through each file with a progress bar
 for image_path in tqdm(image_files, desc="Processing Images"):
+    file_name = os.path.basename(image_path)
+    file_info = get_file_info(image_path)
+    
+    # Check if this file was already processed (same name and size)
+    if file_name in processed_cache:
+        cached_info = processed_cache[file_name]
+        if cached_info.get('size') == file_info['size'] and cached_info.get('modified') == file_info['modified']:
+            # Load the cached slide data
+            if 'slide_text' in cached_info and 'caption_text' in cached_info:
+                slide_text = cached_info['slide_text']
+                caption_text = cached_info['caption_text']
+                
+                # Re-populate grouped_slides and slide_order from cache
+                if slide_text:
+                    if slide_text not in grouped_slides:
+                        grouped_slides[slide_text] = []
+                        slide_order.append(slide_text)
+                    if caption_text and caption_text not in grouped_slides[slide_text]:
+                        grouped_slides[slide_text].append(caption_text)
+                
+                logger.debug(f"Loaded cached data for: {file_name}")
+                stats['skipped'] += 1
+                continue
+            else:
+                # Old cache format without slide data - need to reprocess
+                logger.debug(f"Cache missing slide data for {file_name}, will reprocess")
+        else:
+            logger.debug(f"File modified since last cache: {file_name}")
+    
     # Retry logic for Azure API connection issues
     max_retries = 3
     retry_delay = 2  # seconds
@@ -187,40 +296,76 @@ for image_path in tqdm(image_files, desc="Processing Images"):
                 if caption_text and caption_text not in grouped_slides[slide_text]:
                     grouped_slides[slide_text].append(caption_text)
             
+            # Mark this file as successfully processed and store slide data in cache
+            processed_cache[file_name] = {
+                **file_info,
+                'slide_text': slide_text,
+                'caption_text': caption_text
+            }
+            stats['processed'] += 1
+            logger.debug(f"Successfully processed: {file_name}")
+            
             # Success - break out of retry loop
             break
             
         except (ConnectionResetError, ConnectionError, OSError) as e:
             # Handle connection-related errors with retry logic
             if attempt < max_retries - 1:
-                print(f"\n[Retry {attempt + 1}/{max_retries}] Connection error for {os.path.basename(image_path)}, retrying in {retry_delay}s...")
+                logger.warning(f"[Retry {attempt + 1}/{max_retries}] Connection error for {file_name}, retrying in {retry_delay}s...")
                 time.sleep(retry_delay)
             else:
-                print(f"\n[Failed] Could not process {os.path.basename(image_path)} after {max_retries} attempts")
+                logger.error(f"[Failed] Could not process {file_name} after {max_retries} attempts")
+                stats['failed'] += 1
         except Exception as e:
             # Handle other errors without retry
             if "Connection" in str(e) or "connection" in str(e):
                 # It's a wrapped connection error
                 if attempt < max_retries - 1:
-                    print(f"\n[Retry {attempt + 1}/{max_retries}] Network error for {os.path.basename(image_path)}, retrying in {retry_delay}s...")
+                    logger.warning(f"[Retry {attempt + 1}/{max_retries}] Network error for {file_name}, retrying in {retry_delay}s...")
                     time.sleep(retry_delay)
                 else:
-                    print(f"\n[Failed] Could not process {os.path.basename(image_path)} after {max_retries} attempts")
+                    logger.error(f"[Failed] Could not process {file_name} after {max_retries} attempts")
+                    stats['failed'] += 1
             else:
                 # Other errors - don't retry
-                print(f"\n[Error] Processing {os.path.basename(image_path)}: {e}")
+                logger.error(f"[Error] Processing {file_name}: {e}")
+                stats['failed'] += 1
                 break
 
-print("\nImage processing complete.")
-print(f"Found {len(slide_order)} unique slides.")
+# Save the processed files cache
+save_processed_cache(processed_cache)
+
+# Calculate processing time
+stats['end_time'] = time.time()
+stats['total_time'] = stats['end_time'] - stats['start_time']
+
+# Log final statistics
+logger.info("=" * 60)
+logger.info("Processing Complete!")
+logger.info("=" * 60)
+logger.info(f"Total images found: {stats['total']}")
+logger.info(f"Successfully processed: {stats['processed']}")
+logger.info(f"Skipped (already processed): {stats['skipped']}")
+logger.info(f"Failed: {stats['failed']}")
+logger.info(f"Unique slides extracted: {len(slide_order)}")
+logger.info(f"Total processing time: {stats['total_time']:.2f} seconds")
+if stats['processed'] > 0:
+    logger.info(f"Average time per image: {stats['total_time'] / stats['processed']:.2f} seconds")
+logger.info("=" * 60)
 
 # ----------------------------------------------------------------------
 # 6. ---- WRITE OUTPUT FILE ----
 # ----------------------------------------------------------------------
-print(f"Writing notes to '{OUTPUT_FILE}'...")
+logger.info(f"Writing notes to '{OUTPUT_FILE}'...")
 
 try:
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        # Write header with metadata
+        f.write(f"# Course Notes\n\n")
+        f.write(f"*Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n\n")
+        f.write(f"*Total slides: {len(slide_order)}*\n\n")
+        f.write(f"---\n\n")
+        
         # Loop through the unique slides in the order they were first seen
         for i, slide_text in enumerate(slide_order):
             # Write the slide number as a Markdown heading
@@ -249,6 +394,10 @@ try:
             # Write a horizontal rule to separate the slides
             f.write("---\n\n")
 
-    print("Processing complete. Your course notes are ready!")
+    logger.info(f"Successfully wrote {len(slide_order)} slides to output file")
+    logger.info("Processing complete. Your course notes are ready!")
+    print(f"\n[SUCCESS] Generated '{os.path.basename(OUTPUT_FILE)}' with {len(slide_order)} slides")
+    print(f"[INFO] Check 'processing.log' for detailed information")
 except Exception as e:
-    print(f"Error writing output file: {e}")
+    logger.error(f"Error writing output file: {e}")
+    print(f"[ERROR] Error writing output file: {e}")
