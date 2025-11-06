@@ -42,6 +42,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Suppress Azure SDK verbose logging (only show warnings and errors)
+logging.getLogger('azure').setLevel(logging.WARNING)
+logging.getLogger('azure.core.pipeline.policies.http_logging_policy').setLevel(logging.WARNING)
+
 # ----------------------------------------------------------------------
 # 2. ---- HELPER FUNCTIONS ----
 # ----------------------------------------------------------------------

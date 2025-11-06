@@ -1,4 +1,7 @@
 @echo off
+REM Change to the directory where this batch file is located
+cd /d "%~dp0"
+
 echo ========================================
 echo   Slide Text Extractor
 echo ========================================
@@ -21,7 +24,7 @@ if not exist "%~dp0.env" (
     echo [WARNING] .env file not found!
     echo Please rename .env.example to .env and configure your settings.
     echo.
-    pause
+    if "%TERM_PROGRAM%"=="" pause
     exit /b 1
 )
 
@@ -34,4 +37,6 @@ echo ========================================
 echo   Processing Complete!
 echo ========================================
 echo.
-pause
+
+REM Only pause if run from double-click (not from terminal)
+if "%TERM_PROGRAM%"=="" pause

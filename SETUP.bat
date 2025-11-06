@@ -1,22 +1,37 @@
 @echo off
+REM Change to the directory where this batch file is located
+cd /d "%~dp0"
+
 echo ========================================
 echo   Slide Text Extractor - Setup
 echo ========================================
 echo.
 
-echo [1/4] Creating virtual environment...
-python -m venv venv
+echo [1/4] Checking Python installation...
+python --version
 if errorlevel 1 (
-    echo [ERROR] Failed to create virtual environment.
-    echo Make sure Python is installed and added to PATH.
+    echo [ERROR] Python is not installed or not in PATH!
+    echo Please install Python 3.8 or higher from python.org
     pause
     exit /b 1
 )
 
-echo [2/4] Activating virtual environment...
+echo.
+echo [2/4] Creating virtual environment...
+if not exist venv (
+    python -m venv venv
+    echo [SUCCESS] Virtual environment created
+) else (
+    echo [INFO] Virtual environment already exists
+)
+
+echo.
+echo [3/4] Activating virtual environment and installing dependencies...
 call venv\Scripts\activate.bat
 
-echo [3/4] Installing dependencies...
+echo [3/4] Activating virtual environment and installing dependencies...
+call venv\Scripts\activate.bat
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 if errorlevel 1 (
     echo [ERROR] Failed to install dependencies.
@@ -24,16 +39,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [4/4] Checking configuration...
-if not exist ".env" (
-    echo.
-    echo [ACTION REQUIRED] Please configure your .env file:
-    echo   1. Rename .env.example to .env
-    echo   2. Add your Azure credentials and settings
-    echo   3. See GUIDE.md for detailed instructions
-    echo.
+echo.
+echo [4/4] Creating environment file...
+if not exist .env (
+    copy .env.example .env
+    echo [INFO] Created .env file from template
+    echo [ACTION REQUIRED] Please edit .env and add your Azure credentials!
 ) else (
-    echo .env file found!
+    echo [INFO] .env file already exists
 )
 
 echo.
@@ -42,7 +55,10 @@ echo   Setup Complete!
 echo ========================================
 echo.
 echo Next steps:
-echo   1. Configure your .env file (if not done already)
-echo   2. Double-click RUN.bat to start processing
+echo   1. Edit .env file with your Azure credentials
+echo   2. Place screenshot images in the configured folder
+echo   3. Run RUN.bat to start processing
 echo.
-pause
+
+REM Only pause if run from double-click (not from terminal)
+if "%TERM_PROGRAM%"=="" pause
